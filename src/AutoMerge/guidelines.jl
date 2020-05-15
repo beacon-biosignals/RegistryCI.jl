@@ -333,7 +333,7 @@ function _run_pkg_commands(working_directory::String,
     cmd = Cmd(`$(Base.julia_cmd()) -e $(code)`;
               env = Dict("PATH" => ENV["PATH"],
                          "PYTHON" => "",
-                         "JULIA_DEPOT_PATH" => tmp_dir_2,
+                         # "JULIA_DEPOT_PATH" => tmp_dir_2,
                          "R_HOME" => "*"))
     # GUI toolkits may need a display just to load the package
     xvfb = Sys.which("xvfb-run")
