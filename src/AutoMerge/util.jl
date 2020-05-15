@@ -7,25 +7,6 @@ function checkout_branch(dir::AbstractString,
     cd(original_working_directory)
 end
 
-clone_repo(repo::GitHub.Repo) = clone_repo(repo_url(repo))
-
-function clone_repo(url::AbstractString)
-    parent_dir = mktempdir()
-    atexit(() -> rm(parent_dir; force = true, recursive = true))
-    repo_dir = joinpath(parent_dir, "REPO")
-    my_retry(() -> _clone_repo_into_dir(url, repo_dir))
-    @info("Clone was successful")
-    return repo_dir
-end
-
-function _clone_repo_into_dir(url::AbstractString, repo_dir)
-    @info("Attempting to clone...")
-    rm(repo_dir; force = true, recursive = true)
-    mkpath(repo_dir)
-    LibGit2.clone(url, repo_dir)
-    return repo_dir
-end
-
 function _comment_disclaimer()
     result = string("\n\n",
                     "Note that the guidelines are only required for the pull request ",

@@ -54,6 +54,9 @@ function pull_request_build(pr_number::Integer,
     return result
 end
 
+# defined in `automerge.yml`
+const REGISTRY_REPO_MASTER_WORKSPACE_LOCATION = "registry-repo-master"
+
 function pull_request_build(pr::GitHub.PullRequest,
                             current_pr_head_commit_sha::String,
                             registry::GitHub.Repo,
@@ -67,42 +70,19 @@ function pull_request_build(pr::GitHub.PullRequest,
                             whoami::String,
                             registry_deps::Vector{<:AbstractString} = String[])::Nothing
     if is_new_package(pr)
-        registry_master = clone_repo(registry)
-        if !master_branch_is_default_branch
-            checkout_branch(registry_master, master_branch)
-        end
-        pull_request_build(NewPackage(),
-                           pr,
-                           current_pr_head_commit_sha,
-                           registry;
-                           auth = auth,
-                           authorized_authors=authorized_authors,
-                           authorized_authors_special_jll_exceptions=authorized_authors_special_jll_exceptions,
-                           registry_head = registry_head,
-                           registry_master = registry_master,
-                           suggest_onepointzero = suggest_onepointzero,
-                           whoami=whoami,
-                           registry_deps = registry_deps)
-        rm(registry_master; force = true, recursive = true)
+        kind = NewPackage()
     elseif is_new_version(pr)
-        registry_master = clone_repo(registry)
-        if !master_branch_is_default_branch
-            checkout_branch(registry_master, master_branch)
-        end
-        pull_request_build(NewVersion(),
-                           pr,
-                           current_pr_head_commit_sha,
-                           registry;
-                           auth = auth,
-                           authorized_authors=authorized_authors,
-                           authorized_authors_special_jll_exceptions=authorized_authors_special_jll_exceptions,
-                           registry_head = registry_head,
-                           registry_master = registry_master,
-                           suggest_onepointzero = suggest_onepointzero,
-                           whoami=whoami,
-                           registry_deps = registry_deps)
-        rm(registry_master; force = true, recursive = true)
+        kind = NewVersion()
     else
         throw(AutoMergeNeitherNewPackageNorNewVersion("Neither a new package nor a new version. Exiting..."))
     end
+    pull_request_build(kind, pr, current_pr_head_commit_sha, registry;
+                       auth=auth,
+                       authorized_authors=authorized_authors,
+                       authorized_authors_special_jll_exceptions=authorized_authors_special_jll_exceptions,
+                       registry_head=registry_head,
+                       registry_master=REGISTRY_REPO_MASTER_WORKSPACE_LOCATION,
+                       suggest_onepointzero=suggest_onepointzero,
+                       whoami=whoami,
+                       registry_deps=registry_deps)
 end
