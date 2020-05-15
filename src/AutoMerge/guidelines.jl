@@ -310,31 +310,15 @@ function _run_pkg_commands(working_directory::String,
                            failure_message,
                            failure_return_1,
                            failure_return_2)
-    # original_directory = pwd()
-    # tmp_dir_1 = mktempdir()
-    # tmp_dir_2 = mktempdir()
-    # atexit(() -> rm(tmp_dir_1; force = true, recursive = true))
-    # atexit(() -> rm(tmp_dir_2; force = true, recursive = true))
-    # cd(tmp_dir_1)
-    # We need to be careful with what environment variables we pass to the child
-    # process. For example, we don't want to pass an environment variable containing
-    # our GitHub token to the child process. Because if the Julia package that we are
-    # testing has malicious code in its __init__() function, it could try to steal
-    # our token. So we only pass four environment variables:
-    # 1. PATH. If we don't pass PATH, things break. And PATH should not contain any
-    #    sensitive information.
-    # 2. PYTHON. We set PYTHON to the empty string. This forces any packages that use
-    #    PyCall to install their own version of Python instead of using the system
-    #    Python.
-    # 3. JULIA_DEPOT_PATH. We set JULIA_DEPOT_PATH to the temporary directory that
-    #    we created. This is because we don't want the child process using our
-    #    real Julia depot. So we set up a fake depot for the child process to use.
-    # 4. R_HOME. We set R_HOME to "*".
+    # XXX: upstream RegistryCI.jl passes `ENV` here with only a few restricted
+    # variables to disallow the to-be-registered packages from escalating
+    # priveleges/stealing tokens from within their `__init__` function and
+    # enforcing better e.g. Python dependency management. However, this also
+    # breaks git credential setup for private registries. Since Beacon's registry
+    # isn't publically available anyway, this isn't really a problem for us, so
+    # we simply patched it out to allow us to use this privately. For details, see:
+    # https://github.com/beacon-biosignals/BeaconRegistry/issues/104#issuecomment-629535339
     cmd = Cmd(`$(Base.julia_cmd()) -e $(code)`)
-              # env = Dict("PATH" => ENV["PATH"],
-              #            "PYTHON" => "",
-              #            # "JULIA_DEPOT_PATH" => tmp_dir_2,
-              #            "R_HOME" => "*"))
     # GUI toolkits may need a display just to load the package
     xvfb = Sys.which("xvfb-run")
     @info("xvfb: ", xvfb)
@@ -344,9 +328,6 @@ function _run_pkg_commands(working_directory::String,
     end
     @info(before_message)
     cmd_ran_successfully = success(pipeline(cmd, stdout=stdout, stderr=stderr))
-    # cd(original_directory)
-    # rm(tmp_dir_1; force = true, recursive = true)
-    # rm(tmp_dir_2; force = true, recursive = true)
     if cmd_ran_successfully
         @info(success_message)
         return success_return_1, success_return_2
