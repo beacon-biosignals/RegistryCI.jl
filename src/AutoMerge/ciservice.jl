@@ -77,7 +77,7 @@ end
 function username(cfg::GitHubActions; auth)
     # /user endpoint of GitHub API not available
     # with the GITHUB_TOKEN authentication
-    return "github-actions[bot]"
+    return "called `username(cfg::GitHubActions; auth)`; skipping"
 end
 
 ####################
