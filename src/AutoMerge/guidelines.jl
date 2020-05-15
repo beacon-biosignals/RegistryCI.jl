@@ -213,7 +213,7 @@ end
 
 function _generate_pkg_add_command(pkg::String,
                                    version::VersionNumber)::String
-    return "Pkg.add(Pkg.PackageSpec(name=\"$(pkg)\", version=v\"$(string(version))\"));"
+    return "Pkg.add(Pkg.PackageSpec(name=\"$(pkg)\", version=v\"$(string(version))\")); println(v\"$(string(version))\")"
 end
 
 function meets_version_can_be_pkg_added(working_directory::String,
@@ -310,12 +310,12 @@ function _run_pkg_commands(working_directory::String,
                            failure_message,
                            failure_return_1,
                            failure_return_2)
-    original_directory = pwd()
-    tmp_dir_1 = mktempdir()
-    tmp_dir_2 = mktempdir()
-    atexit(() -> rm(tmp_dir_1; force = true, recursive = true))
-    atexit(() -> rm(tmp_dir_2; force = true, recursive = true))
-    cd(tmp_dir_1)
+    # original_directory = pwd()
+    # tmp_dir_1 = mktempdir()
+    # tmp_dir_2 = mktempdir()
+    # atexit(() -> rm(tmp_dir_1; force = true, recursive = true))
+    # atexit(() -> rm(tmp_dir_2; force = true, recursive = true))
+    # cd(tmp_dir_1)
     # We need to be careful with what environment variables we pass to the child
     # process. For example, we don't want to pass an environment variable containing
     # our GitHub token to the child process. Because if the Julia package that we are
@@ -330,11 +330,11 @@ function _run_pkg_commands(working_directory::String,
     #    we created. This is because we don't want the child process using our
     #    real Julia depot. So we set up a fake depot for the child process to use.
     # 4. R_HOME. We set R_HOME to "*".
-    cmd = Cmd(`$(Base.julia_cmd()) -e $(code)`;
-              env = Dict("PATH" => ENV["PATH"],
-                         "PYTHON" => "",
-                         # "JULIA_DEPOT_PATH" => tmp_dir_2,
-                         "R_HOME" => "*"))
+    cmd = Cmd(`$(Base.julia_cmd()) -e $(code)`)
+              # env = Dict("PATH" => ENV["PATH"],
+              #            "PYTHON" => "",
+              #            # "JULIA_DEPOT_PATH" => tmp_dir_2,
+              #            "R_HOME" => "*"))
     # GUI toolkits may need a display just to load the package
     xvfb = Sys.which("xvfb-run")
     @info("xvfb: ", xvfb)
@@ -344,9 +344,9 @@ function _run_pkg_commands(working_directory::String,
     end
     @info(before_message)
     cmd_ran_successfully = success(pipeline(cmd, stdout=stdout, stderr=stderr))
-    cd(original_directory)
-    rm(tmp_dir_1; force = true, recursive = true)
-    rm(tmp_dir_2; force = true, recursive = true)
+    # cd(original_directory)
+    # rm(tmp_dir_1; force = true, recursive = true)
+    # rm(tmp_dir_2; force = true, recursive = true)
     if cmd_ran_successfully
         @info(success_message)
         return success_return_1, success_return_2
