@@ -411,42 +411,15 @@ function _run_pkg_commands(working_directory::String,
     atexit(() -> rm(tmp_dir_1; force = true, recursive = true))
     atexit(() -> rm(tmp_dir_2; force = true, recursive = true))
     cd(tmp_dir_1)
-    # We need to be careful with what environment variables we pass to the child
-    # process. For example, we don't want to pass an environment variable containing
-    # our GitHub token to the child process. Because if the Julia package that we are
-    # testing has malicious code in its __init__() function, it could try to steal
-    # our token. So we only pass eight environment variables:
-    # 1. HTTP_PROXY. If it's set, it is delegated to the child process.
-    # 2. HTTPS_PROXY. If it's set, it is delegated to the child process.
-    # 3. JULIA_DEPOT_PATH. We set JULIA_DEPOT_PATH to the temporary directory that
-    #    we created. This is because we don't want the child process using our
-    #    real Julia depot. So we set up a fake depot for the child process to use.
-    # 4. JULIA_PKG_SERVER. If it's set, it is delegated to the child process.
-    # 5. JULIA_REGISTRYCI_AUTOMERGE. We set JULIA_REGISTRYCI_AUTOMERGE to "true".
-    # 6. PATH. If we don't pass PATH, things break. And PATH should not contain any
-    #    sensitive information.
-    # 7. PYTHON. We set PYTHON to the empty string. This forces any packages that use
-    #    PyCall to install their own version of Python instead of using the system
-    #    Python.
-    # 8. R_HOME. We set R_HOME to "*".
-    env = Dict{String, String}()
-    if haskey(ENV, "HTTP_PROXY")
-        env["HTTP_PROXY"] = deepcopy(ENV["HTTP_PROXY"])
-    end
-    if haskey(ENV, "HTTPS_PROXY")
-        env["HTTPS_PROXY"] = deepcopy(ENV["HTTPS_PROXY"])
-    end
-    env["JULIA_DEPOT_PATH"] = deepcopy(tmp_dir_2)
-    if haskey(ENV, "JULIA_PKG_SERVER")
-        env["JULIA_PKG_SERVER"] = deepcopy(ENV["JULIA_PKG_SERVER"])
-    end
-    env["JULIA_REGISTRYCI_AUTOMERGE"] = "true"
-    env["PATH"] = deepcopy(ENV["PATH"])
-    env["PYTHON"] = ""
-    env["R_HOME"] = "*"
-
-    cmd = Cmd(`$(Base.julia_cmd()) -e $(code)`;
-              env = env)
+    # XXX: upstream RegistryCI.jl passes `ENV` here with only a few restricted
+    # variables to disallow the to-be-registered packages from escalating
+    # privileges/stealing tokens from within their `__init__` function and
+    # enforcing better e.g. Python dependency management. However, this also
+    # breaks git credential setup for private registries. Since Beacon's registry
+    # isn't publically available anyway, this isn't really a problem for us, so
+    # we simply patched it out to allow us to use this privately. For details, see:
+    # https://github.com/beacon-biosignals/BeaconRegistry/issues/104#issuecomment-629535339
+    cmd = Cmd(`$(Base.julia_cmd()) -e $(code)`)
     # GUI toolkits may need a display just to load the package
     xvfb = Sys.which("xvfb-run")
     @info("xvfb: ", xvfb)
